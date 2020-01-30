@@ -12,7 +12,7 @@ temp_file = '{}/.cache/son-depremler.json'.format(os.getenv("HOME"))
 
 req = requests.get('http://kandilli-son-depremler-api.herokuapp.com/')
 req = req.json()
-range = slice(20)
+range = slice(10)
 req = req[range]
 
 last_quakes = []
