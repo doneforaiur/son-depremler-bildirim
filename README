@@ -1,0 +1,5 @@
+# son-depremler-bildirim
+
+crontab'a ekleyin kullanın
+libnotify-bin paketi gereklidir.
+dunst ile test edildi, kullanılıyor.
