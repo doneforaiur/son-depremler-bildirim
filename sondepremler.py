@@ -12,10 +12,11 @@ temp_file = '{}/.cache/son-depremler.json'.format(os.getenv("HOME"))
 
 req = requests.get('http://kandilli-son-depremler-api.herokuapp.com/')
 req = req.json()
-range = slice(10)
+range = slice(20)
 req = req[range]
 
 last_quakes = []
+magnitudes  = []
 
 for quake in req:
 	last_quakes.append({
@@ -29,6 +30,13 @@ for quake in req:
 		'buyukluk_ml': float(quake['ml'] or 0)
 	})
 
+	mags = {
+		'ml': float(quake['ml'] or 0), 'mw': float(quake['mw'] or 0), 'md': float(quake['md'] or 0)
+	}
+
+	biggest = max(mags.items(), key=operator.itemgetter(1))[0]
+	magnitudes.append(quake[biggest])
+
 	recent_quake = last_quakes[ len(last_quakes) - 1 ]
 
 	format_string = "{4} tarihinde\n{0} bölgesinde büyüklükleri:\nML: {1} \nMW: {2} \nMD: {3} olan bir deprem gerçekleşti."
@@ -36,18 +44,19 @@ for quake in req:
 	recent_quake['bildirim'] = format_string.format(*format_data)
 	last_quakes[ len(last_quakes) - 1 ] = recent_quake
 
+biggest_index = magnitudes.index(max(magnitudes))
 
 if os.path.exists(temp_file):
 	with open(temp_file, 'r') as outfile:
 		data = json.load(outfile)
-		print(last_quakes[0] in data)
-		if last_quakes[0] in data:
+		print(last_quakes[biggest_index] in data)
+		if last_quakes[biggest_index] in data:
 			exit()
 
-result = os.system("notify-send --urgency critical '{}'".format(last_quakes[0]['bildirim']))
+result = os.system("notify-send --urgency critical '{}'".format(last_quakes[biggest_index]['bildirim']))
 
 if result != 0:
 	exit()
 else:
 	with open(temp_file, 'w') as outfile:
-		json.dump([last_quakes[0]], outfile)
+		json.dump([last_quakes[biggest_index]], outfile)
