@@ -48,9 +48,9 @@ for quake in req.json()[slice(10)]:
 	last_quakes.append(notification_str.format(
 		*(
 			str(quake['address']),
-			str(quake['ml']),
-			str(quake['mw']),
-			str(quake['md']),
+			str(quake['ml'] or 0),
+                        str(quake['mw'] or 0),
+                        str(quake['md'] or 0),
 			# Lanet tarih formatlama işleri
 			str(datetime
 				.datetime
