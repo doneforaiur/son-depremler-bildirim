@@ -5,6 +5,7 @@ import datetime
 import locale
 import os
 import operator
+import urllib.parse
 
 # Türkçe tarih formatı ve karakerler için 
 # locale'yi tr_tr.utf8 yapıyorum.
@@ -17,6 +18,10 @@ cmd_template     = "notify-send --urgency {} '{}'"
 notification     = ""
 last_quakes      = []
 magnitudes       = []
+api_key          = "1070612768:AAGArQVhVuomv8z4Ut_03EHVSnscmQxbEb4"
+endpoint         = "https://api.telegram.org/bot{0}".format(api_key)
+chat_id          = os.popen("curl {}/getUpdates | jq '.result[-1].message.chat.id'".format(endpoint)).read();
+
 # İsteği yap
 req = requests.get('http://kandilli-son-depremler-api.herokuapp.com/')
 # Bildirim öncelik parametresini al
@@ -49,8 +54,8 @@ for quake in req.json()[slice(10)]:
 		*(
 			str(quake['address']),
 			str(quake['ml'] or 0),
-                        str(quake['mw'] or 0),
-                        str(quake['md'] or 0),
+			str(quake['mw'] or 0),
+			str(quake['md'] or 0),
 			# Lanet tarih formatlama işleri
 			str(datetime
 				.datetime
@@ -72,12 +77,18 @@ if os.path.exists(temp_file):
 			exit()
 
 # Bildirim komutunu çalıştır.
-result = os.system(cmd_template.format(
-	*(
-		get_urgency(float(mag or 0)), # Önceliği al. 5 ve üstü kritik, 3-5 arası normal, kalanı düşük
-		last_quakes[biggest_index]    # Formatlanmış bildirim metnini al
- 	)
-))
+message = cmd_template.format(
+		*(
+			get_urgency(float(mag or 0)), # Önceliği al. 5 ve üstü kritik, 3-5 arası normal, kalanı düşük
+			last_quakes[biggest_index]    # Formatlanmış bildirim metnini al
+	 	)
+	)
+result  = os.system(message)
+
+telegram_result = requests.get(url = "{}/sendMessage".format(endpoint), data = {
+	'chat_id':chat_id,
+	'text': last_quakes[biggest_index]
+})
 
 # 0 döner. dönmezse hata vardır.
 if result != 0:
