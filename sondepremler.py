@@ -18,7 +18,7 @@ cmd_template     = "notify-send --urgency {} '{}'"
 notification     = ""
 last_quakes      = []
 magnitudes       = []
-api_key          = "1070612768:AAGArQVhVuomv8z4Ut_03EHVSnscmQxbEb4"
+api_key          = os.getenv('TELEGRAM_API_KEY')
 endpoint         = "https://api.telegram.org/bot{0}".format(api_key)
 chat_id          = os.popen("curl {}/getUpdates | jq '.result[-1].message.chat.id'".format(endpoint)).read();
 
