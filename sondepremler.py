@@ -7,6 +7,68 @@ import os
 import operator
 import urllib.parse
 from math import sqrt, sin, cos, sqrt, atan2, radians
+import argparse
+
+
+
+
+parser = argparse.ArgumentParser(description='Boğaziçi  Üniversitesi Kandilli Rasathanesine ait sot veriler.')
+
+parser.add_argument(
+        '-m','--mod',
+        default='magnitude', 
+        choices=['magnitude','distance', 'hybrid'],
+        help='Hybrid hem mesafeyi hem de enerjiyi baz alarak önem sırasını ve bildirimin önceliğini belirler.'
+)
+
+
+parser.add_argument(
+        '-c', '--coord',
+        metavar=('lat','lon'),
+        nargs=2,
+        type=float, 
+        default=('41.0082', '28.97784'),
+)
+
+parser.add_argument('-k','--kritik',
+        type=float, 
+        default=5.0, 
+        help='Kritik depremler için alt sınır enerjisi.'
+)
+
+args = parser.parse_args()
+print('Args;', args)
+
+def get_biggest(_mags):
+        return max(_mags.items(), key=operator.itemgetter(1))[0]
+
+
+def get_dist(_coords):
+    coord = [float(i) for i in args.coord]
+    _coords = _coords.split(",")
+    _coords = [float(i) for i in _coords]
+
+
+    #Dünyanın çapı
+    R = 6373.0
+
+    lat1 = radians(coord[0])
+    lon1 = radians(coord[1])
+    lat2 = radians(_coords[0])
+    lon2 = radians(_coords[1])
+
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    # Eratosthenes of Cyrene, deden ölsün
+    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    return R * c
+
+
+
+    
 
 # Türkçe tarih formatı ve karakerler için 
 # locale'yi tr_tr.utf8 yapıyorum.
@@ -27,39 +89,13 @@ distances        = []
 req = requests.get('http://kandilli-son-depremler-api.herokuapp.com/')
 # Bildirim öncelik parametresini al
 def get_urgency(_magnitude):
-        if (_magnitude >= 5.0): 
+        if (_magnitude >= args.kritik): 
                 return 'critical'
-        elif (_magnitude >= 3.0):
+        elif (_magnitude >= args.kritik-2.0): #TODO; input al?
                 return 'normal'
         else:
                 return 'low'
-# Bunu neden ayrı yaptım bilmiyorum
-def get_biggest(_mags):
-        return max(_mags.items(), key=operator.itemgetter(1))[0]
 
-
-
-def get_dist(_coords):
-    coord = [39.934153, 32.873296] #dont look it up
-    _coords = _coords.split(",")
-    _coords = [float(i) for i in _coords]
-
-    #Dünyanın çapı
-    R = 6373.0
-
-    lat1 = radians(coord[0])
-    lon1 = radians(coord[1])
-    lat2 = radians(_coords[0])
-    lon2 = radians(_coords[1])
-
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
-
-    # Eratosthenes of Cyrene, deden ölsün
-    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
-
-    return R * c
 
 
 
@@ -115,12 +151,18 @@ if os.path.exists(temp_file):
 
 
 
-
+if args.mod == 'distance':
+    kriter = last_quakes[closest_index]
+elif args.mod == 'magnitude':
+    kriter = last_quakes[biggest_index]
+else:
+    kriter = last_quakes[closest_index] #TODO; hybrid'i hesapla lol
+ 
 # Bildirim komutunu çalıştır.
 message = cmd_template.format(
                 *(
                         get_urgency(float(mag or 0)), # Önceliği al. 5 ve üstü kritik, 3-5 arası normal, kalanı düşük
-                        last_quakes[closest_index]    # Formatlanmış bildirim metnini al
+                kriter
                 )
         )
 result  = os.system(message)
