@@ -11,7 +11,6 @@ import argparse
 
 
 
-
 parser = argparse.ArgumentParser(description='Boğaziçi  Üniversitesi Kandilli Rasathanesine ait sot veriler.')
 
 parser.add_argument(
@@ -27,7 +26,7 @@ parser.add_argument(
         metavar=('lat','lon'),
         nargs=2,
         type=float, 
-        default=('41.0082', '28.97784'),
+        default=('39.9334', '32.8597'),
 )
 
 parser.add_argument('-k','--kritik',
@@ -67,7 +66,10 @@ def get_dist(_coords):
     return R * c
 
 
-
+def shaking_intensity(mag, dist): # tamamen sallamasyon lol
+    intensity = ( pow(10,mag+1 ) ) / ( pow(dist,2) )
+    print(intensity)
+    return float(intensity)
     
 
 # Türkçe tarih formatı ve karakerler için 
@@ -82,7 +84,7 @@ notification     = ""
 last_quakes      = []
 magnitudes       = []
 distances        = []
-
+shak_inten       = []
 
 
 # İsteği yap
@@ -101,7 +103,7 @@ def get_urgency(_magnitude):
 
 # İstek gövdesini json'a dönüştür ve ilk 10 elemanı dön
 smol_dist = float('inf') #global variable oh no
-for quake in req.json()[slice(30)]:
+for quake in req.json()[slice(100)]:
         # büyüklükleri float olarak ayıkla
         # daha sonra aralarından büyük olanı alacağız
         mags = {
@@ -112,12 +114,16 @@ for quake in req.json()[slice(30)]:
         dist = get_dist(quake['geolocation'])
         if dist < smol_dist:
             smol_dist = dist
+        
+        shak_int = shaking_intensity(mags['ml'], dist)
+
         # Alacağız demiştim.
         biggest = get_biggest(mags)
         # Genel büyüklükler listesine en büyük M* değerini ekle
         # Üç büyüklük türünden en büyük olanı alıyoruz.
         magnitudes.append(quake[biggest])
         distances.append(dist)
+        shak_inten.append(shak_int)
         # Bildirim metnine verdiğimiz parametreleri yerleştiriyoruz.
         last_quakes.append(notification_str.format(
                 *(
@@ -138,10 +144,15 @@ for quake in req.json()[slice(30)]:
 # Gelen ilk 10 satırdan en şiddetli olanın büyüklük türünü (ml,mw,md neyse işte) alıyoruz.
 mag           = max(magnitudes)
 dist          = min(distances)
+shak          = max(shak_inten)
 # En şiddetli olanı bildirimler listesinden çekip alıyoruz.
-biggest_index = magnitudes.index(mag)
-closest_index = distances.index(dist)
+biggest_index   = magnitudes.index(mag)
+closest_index   = distances.index(dist)
+noticable_index = shak_inten.index(shak)
 
+
+
+print(noticable_index, shak)
 
 # Bu bildirim daha önce gösterilmişse bu script biter.
 if os.path.exists(temp_file):
@@ -156,7 +167,7 @@ if args.mod == 'distance':
 elif args.mod == 'magnitude':
     kriter = last_quakes[biggest_index]
 else:
-    kriter = last_quakes[closest_index] #TODO; hybrid'i hesapla lol
+    kriter = last_quakes[noticable_index] 
  
 # Bildirim komutunu çalıştır.
 message = cmd_template.format(
